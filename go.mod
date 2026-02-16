@@ -1,6 +1,6 @@
 module github.com/mochlast/devcontainer-companion
 
-go 1.25.7
+go 1.25.6
 
 require (
 	github.com/charmbracelet/bubbles v0.21.1

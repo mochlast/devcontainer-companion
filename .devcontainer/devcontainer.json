@@ -1,0 +1,17 @@
+{
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "golang.Go"
+      ]
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers-extra/features/claude-code:1": {
+      "version": "latest"
+    }
+  },
+  "image": "mcr.microsoft.com/devcontainers/go:2-1.25-trixie",
+  "name": "Go"
+}

@@ -17,3 +17,6 @@ screenshots/
 
 # Bug reports / notes
 bug.txt
+
+# Claude local settings
+.claude/settings.local.json
