@@ -134,7 +134,7 @@ func runTemplateFlow(absFolder, projectName string, noCache bool, ctx ui.HubCont
 			},
 			PostLabel: "Applying template...",
 			PostFn: func(opts map[string]any) error {
-				return template.Apply(absFolder, ociRef, opts)
+				return applyTemplatePreservingSettings(absFolder, ociRef, opts)
 			},
 		})
 		if err != nil {
@@ -331,4 +331,60 @@ func writeCustomizationList(absFolder string, items []string, ideKey, listKey st
 	}
 
 	return devcontainer.WriteConfig(configPath, config)
+}
+
+// templateKeys are the keys that `devcontainer templates apply` legitimately owns.
+// These get overwritten by the template; everything else is preserved.
+var templateKeys = map[string]bool{
+	"image":                true,
+	"build":                true,
+	"dockerFile":           true,
+	"dockerComposeFile":    true,
+	"service":              true,
+	"workspaceFolder":      true,
+	"workspaceMount":       true,
+	"hostRequirements":     true,
+}
+
+// applyTemplatePreservingSettings applies a template and then restores any
+// user-configured settings (features, extensions, lifecycle commands, etc.)
+// that were present before the template overwrote devcontainer.json.
+func applyTemplatePreservingSettings(absFolder, ociRef string, opts map[string]any) error {
+	// Read existing config before applying — if none exists, just apply.
+	oldConfig, configPath, err := devcontainer.ReadConfig(absFolder)
+	if err != nil {
+		// No existing config — apply template directly.
+		return template.Apply(absFolder, ociRef, opts)
+	}
+
+	// Save non-template keys.
+	preserved := make(map[string]any)
+	for k, v := range oldConfig {
+		if !templateKeys[k] {
+			preserved[k] = v
+		}
+	}
+
+	// Apply the template (overwrites devcontainer.json).
+	if err := template.Apply(absFolder, ociRef, opts); err != nil {
+		return err
+	}
+
+	// If there was nothing to preserve, we're done.
+	if len(preserved) == 0 {
+		return nil
+	}
+
+	// Read the new config written by the template.
+	newConfig, _, err := devcontainer.ReadConfig(absFolder)
+	if err != nil {
+		return fmt.Errorf("reading config after template apply: %w", err)
+	}
+
+	// Merge preserved keys back — user settings win on conflict.
+	for k, v := range preserved {
+		newConfig[k] = v
+	}
+
+	return devcontainer.WriteConfig(configPath, newConfig)
 }
