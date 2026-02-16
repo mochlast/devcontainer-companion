@@ -1,0 +1,19 @@
+# Binary
+dcc
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# VHS tape
+demo.tape
+screenshots/
+
+# Bug reports / notes
+bug.txt
