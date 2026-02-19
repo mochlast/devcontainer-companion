@@ -31,17 +31,22 @@ func ReadConfig(workspaceFolder string) (map[string]any, string, error) {
 }
 
 // WriteConfig writes a config map to the given path as formatted JSON with 2-space indent.
+// If the file already exists, the key ordering from the existing file is preserved.
+// New keys are appended in alphabetical order.
 func WriteConfig(path string, config map[string]any) error {
-	data, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshaling devcontainer.json: %w", err)
+	// Read existing file to preserve key ordering.
+	var order *keyOrder
+	if existing, err := os.ReadFile(path); err == nil {
+		order = extractKeyOrder(jsonc.ToJSON(existing))
 	}
+
+	data := marshalOrdered(config, order)
 
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("creating directory: %w", err)
 	}
 
-	if err := os.WriteFile(path, append(data, '\n'), 0o644); err != nil {
+	if err := os.WriteFile(path, data, 0o644); err != nil {
 		return fmt.Errorf("writing devcontainer.json: %w", err)
 	}
 
